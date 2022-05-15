@@ -1,0 +1,5 @@
+model: 'decision_tree'
+criterion: 'gini'
+max_depth: 20
+max_features: 5000
+class_weight: 'balanced'

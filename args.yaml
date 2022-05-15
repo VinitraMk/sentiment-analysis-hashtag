@@ -1,0 +1,36 @@
+config:
+    input_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\input"
+    processed_io_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\processed_io"
+    output_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\output"
+    internal_output_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\output\\internal_output"
+    visualizations_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\visualizations"
+    experimental_output_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\experimental_logs"
+    azureblob_name: "azureml-blobstore-31aeaa24-564c-4aa8-bdf4-fc4b5707bd1b"
+
+model_args:
+    model: 'ann'
+    lr: 5 
+    num_epochs: 10
+    batch_size: 100
+                
+preproc_args:
+    encoding_type: 'LABEL_ENCODING'
+    vectorization_method: 'WC'
+    sublinear_tf: True
+    norm: 'l2'
+    ngram_range_min: 1
+    ngram_range_max: 2
+    vectorizer_max_features: 5000
+    best_k_features: 40
+    best_k_words: 5
+    apply_stemming: False
+    sampling_method: 'SMOTE_SAMPLING'
+    sampling_k: 5
+    sampling_strategy: 'not majority'
+    apply_pseudo_labeling: True
+    skip_cols: ['location', 'state']
+
+validation_args:
+    validation_type: 'NORMAL_SPLIT'
+    validation_split_share: 0.3
+    k: 5

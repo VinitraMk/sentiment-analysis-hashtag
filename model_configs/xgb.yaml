@@ -1,0 +1,8 @@
+model: 'xgb'
+alpha: 0.1
+n_estimators: 20
+min_split_loss: 0.001
+tree_method: 'gpu_hist'
+grow_policy: 'depthwise'
+single_precision_histogram: False
+nthread: -1

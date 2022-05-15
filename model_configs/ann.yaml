@@ -1,0 +1,3 @@
+model: 'ann'
+lr: 0.01
+num_epochs: 5

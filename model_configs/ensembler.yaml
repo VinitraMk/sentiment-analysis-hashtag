@@ -1,0 +1,30 @@
+model: 'ensembler'
+    voting_type: 'hard'
+    ensembler_type: 'voting'
+    ensembler_args:
+        xgb:
+            model: 'xgb'
+            alpha: 0.1
+            n_estimators: 60
+            min_split_loss: 0.001
+            tree_method: 'hist'
+            grow_policy: 'lossguide'
+            single_precision_histogram: False
+            max_depth: 20
+        decision_tree:
+            model: 'decision_tree'
+            criterion: 'gini'
+            max_depth: 20
+            max_features: 5000
+            class_weight: 'balanced'
+        rfa:
+            model: 'rfa'
+            n_estimators: 60
+            max_depth: 20
+            min_samples_split: 10
+            min_samples_leaf: 20
+            bootstrap_samples: True
+            class_weight: 'balanced'
+            warm_start: True
+            ccp_alpha: 0.0
+            criterion: 'gini'

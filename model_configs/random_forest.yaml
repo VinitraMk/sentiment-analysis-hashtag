@@ -1,0 +1,9 @@
+model: 'random_forest'
+n_estimators: 60
+max_depth: 20
+min_samples_split: 10
+min_samples_leaf: 20
+bootstrap_samples: True
+class_weight: 'balanced'
+warm_start: True
+ccp_alpha: 0.0

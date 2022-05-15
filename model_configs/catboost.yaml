@@ -1,0 +1,5 @@
+model: 'catboost'
+iterations: 100
+alpha: 0.1
+depth: 40
+l2_leaf_reg: 3.0
