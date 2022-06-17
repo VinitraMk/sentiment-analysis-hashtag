@@ -8,3 +8,5 @@ class Model(str, enum.Enum):
     RFA = 'rfa'
     ENSEMBLER = 'ensembler'
     ANN = 'ann'
+    RNN = 'rnn'
+    CNN = 'cnn'

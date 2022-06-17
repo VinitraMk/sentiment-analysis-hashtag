@@ -6,12 +6,23 @@ config:
     visualizations_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\visualizations"
     experimental_output_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\experimental_logs"
     azureblob_name: "azureml-blobstore-31aeaa24-564c-4aa8-bdf4-fc4b5707bd1b"
+    resource_config_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\config.json"
 
 model_args:
-    model: 'ann'
-    lr: 5 
-    num_epochs: 10
-    batch_size: 100
+    model: 'rnn'
+    batch_size: 1103
+    num_epochs: 5
+    word2vec_epochs: 1000
+    embed_dim: 128
+    window_size: 10
+    lr: 0.001
+    text_max_length: 35
+    momentum: 0.8
+    lstm_size: 3
+    num_layers: 2
+    dropout: 0.25
+    num_classes: 24 
+    target_cols: ['s1','s2','s3','s4','s5', 'w1', 'w2', 'w3', 'w4', 'k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7', 'k8', 'k9', 'k10', 'k11', 'k12', 'k13', 'k14', 'k15']
                 
 preproc_args:
     encoding_type: 'LABEL_ENCODING'
@@ -29,6 +40,7 @@ preproc_args:
     sampling_strategy: 'not majority'
     apply_pseudo_labeling: True
     skip_cols: ['location', 'state']
+    train_validation_split: 0.7
 
 validation_args:
     validation_type: 'NORMAL_SPLIT'

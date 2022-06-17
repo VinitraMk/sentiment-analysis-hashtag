@@ -81,6 +81,8 @@ zipp==3.5.0
 nlpaug==1.1.8
 azureml-dataset-runtime==1.36.0
 wordcloud==1.8.1
-torch==1.7.1
+torch==1.10.1
 imblearn==0.0
 transformers==4.12.3
+torchtext==0.11.1
+gensim==4.1.2
