@@ -21,8 +21,11 @@ class Preprocessor:
         self.tokenizer = get_tokenizer('basic_english')
 
     def start_preprocessing(self, data_iter):
+        print('\tBuilding vocabulary')
         self.vocab = build_vocab_from_iterator(self.__yield_tokens(data_iter), specials=["<unk>"])
+        print('\tSetting vocabulary index')
         self.vocab.set_default_index(1)
+        print('\tBuilding text pipeline')
         self.__build_text_pipeline()
         self.label_cols = get_target_cols()
 
@@ -81,7 +84,9 @@ class Preprocessor:
 
     def __build_text_pipeline(self):
         max_text_len = get_model_params()['text_max_length']
+        print('\t\tCleaning data')
         self.text_pipeline = lambda x: self.__adding_padding(self.vocab(self.tokenizer(self.__clean_data(x))), max_text_len)
+        print('\t\tSetting label pipeline')
         self.label_pipeline = lambda x: self.__get_label_arr(x)
 
     def __get_label_arr(self, sample):

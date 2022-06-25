@@ -24,7 +24,7 @@ from constants.model_enums import Model
 from helper.augmenter import generate_new_data
 from models.rnn import RNN
 from experiments.WeatherDataset import WeatherDataset
-from helper.utils import get_config, get_filename, get_model_params, get_preproc_params, init_weights, read_json, save_fig, save_model, save_model_supports, save_tensor
+from helper.utils import get_config, get_filename, get_model_params, get_preproc_params, init_weights, read_json, save_fig, save_model, save_model_supports, save_tensor, get_target_cols
 
 class Index:
 
@@ -38,6 +38,7 @@ class Index:
     no_of_batches = 0
     split_train_dataset = None
     current_model_obj = None
+    model_state = None
 
     def __init__(self):
         if not(os.getenv('ROOT_DIR')):
@@ -80,16 +81,18 @@ class Index:
         self.test_loader = DataLoader(self.test_dataset, batch_size = self.model_args["batch_size"], shuffle=False, collate_fn=self.preprocessor.collate_batch)
 
     def __get_word2vec_embeddings(self):
-        embedding_model_path = f'{self.config["processed_io_path"]}\\models\\word_embeddings.model' 
-        print('Getting word embeddings...')
-        print('\tGetting tokens...')
-        train_tokens = self.preprocessor.get_tokens_for_dataset(self.train_dataset)
-        print('\tInitializing Word2Vec...')
-        self.embedding_model = Word2Vec(sentences = train_tokens, vector_size=self.model_args["embed_dim"], window=self.model_args["window_size"], min_count = 1)
-        print('\tTraining Word2Vec...')
-        self.embedding_model.train(train_tokens, total_examples=len(train_tokens), epochs=self.model_args["word2vec_epochs"])
-        print('\tSaving Word2Vec embeddings...')
-        self.embedding_model.save(embedding_model_path)
+        io_path = self.config["processed_io_path"]
+        embedding_model_path = f'{io_path}\\models\\word_embeddings.model'
+        if not(os.path.exists(embedding_model_path)):
+            print('Getting word embeddings...')
+            print('\tGetting tokens...')
+            train_tokens = self.preprocessor.get_tokens_for_dataset(self.train_dataset)
+            print('\tInitializing Word2Vec...')
+            self.embedding_model = Word2Vec(sentences = train_tokens, vector_size=self.model_args["embed_dim"], window=self.model_args["window_size"], min_count = 1)
+            print('\tTraining Word2Vec...')
+            self.embedding_model.train(train_tokens, total_examples=len(train_tokens), epochs=self.model_args["word2vec_epochs"])
+            print('\tSaving Word2Vec embeddings...')
+            self.embedding_model.save(embedding_model_path)
 
     def __make_model(self):
         print('Making model...')
@@ -111,6 +114,7 @@ class Index:
         if self.model_args["model"] == Model.RNN:
             prev_state_h, prev_state_c = self.model.init_state(self.model_args["text_max_length"])
             model_obj["rnn_prev_state_h"], model_obj["rnn_prev_state_c"] = prev_state_h, prev_state_c
+            self.model_state = (prev_state_h, prev_state_c)
         model_path = f"{self.config['processed_io_path']}\\models"
         print('\tSaving model')
         save_model(model_obj, model_path, self.model_args["model"], True)
@@ -132,8 +136,8 @@ class Index:
         self.def_blob_store = self.azws.get_default_datastore()
 
     def __copy_model_chkpoint(self):
-        local_model_path = f"{self.config['internal_output_path']}/{self.model_args['model']}_model.tar"
-        upload_model_path = f"{self.config['processed_io_path']}/models/{self.model_args['model']}_model.tar"
+        local_model_path = f"{self.config['internal_output_path']}/{self.model_args['model']}_model.pt"
+        upload_model_path = f"{self.config['processed_io_path']}/models/{self.model_args['model']}_model.pt"
         if (os.path.isfile(local_model_path)):
             os.system(f"copy {local_model_path} {upload_model_path}")
 
@@ -142,9 +146,9 @@ class Index:
         self.train_loader = DataLoader(new_train_dataset, batch_size = self.model_args["batch_size"], shuffle = True, collate_fn=self.preprocessor.collate_batch)
         
     def __train_model_in_azure(self, is_first_batch = False, is_last_batch = False):
-        self.__copy_model_chkpoint()
-        print('\t\tUploading data to blob storage...')
-        self.def_blob_store.upload(src_dir='./processed_io', target_path="input/", overwrite=True, show_progress = False)
+        #self.__copy_model_chkpoint()
+        #print('\t\tUploading data to blob storage...')
+        #self.def_blob_store.upload(src_dir='./processed_io', target_path="input/", overwrite=True, show_progress = False)
         print('\t\tBuilding config for experiment run...')
         input_data = Dataset.File.from_files(path=(self.def_blob_store, '/input'))
         input_data = input_data.as_named_input('input').as_mount()
@@ -153,13 +157,22 @@ class Index:
         config = ScriptRunConfig(
             source_directory='./models/training_scripts',
             script='train_nn.py',
-            arguments=[input_data, output, self.model_args["model"], self.preprocessor.get_vocab_size(), is_first_batch, is_last_batch, model_args_string],
+            arguments=[input_data, output, self.model_args["model"], self.preprocessor.get_vocab_size(), model_args_string, self.no_of_batches],
             compute_target="mikasa",
             environment=self.azenv
         )
 
         run = self.azexp.submit(config)
         run.wait_for_completion(show_output = False, raise_on_error = True)
+
+    def __upload_batch_data(self):
+        self.__copy_model_chkpoint()
+        print('\t\tUploading data to blob storage...')
+        self.def_blob_store.upload(src_dir='./processed_io', target_path="input/", overwrite=True, show_progress = False)
+        #print('\t\tBuilding config for experiment run...')
+        #input_data = Dataset.File.from_files(path=(self.def_blob_store, '/input'))
+        #input_data = input_data.as_named_input('input').as_mount()
+        #output = OutputFileDatasetConfig(destination=(self.def_blob_store, '/output'))
 
     def __download_output(self):
         config = get_config()
@@ -168,9 +181,9 @@ class Index:
         MODEL_CONTAINER = f'{MAIN_OUTPUT_CONTAINER}/models'
         MODEL_DETAILS_CONTAINER = f'{MAIN_OUTPUT_CONTAINER}/internal_output'
         LOCAL_MODELDET_PATH = f"{config['experimental_output_path']}\\model_details.json"
-        LOCAL_MODEL_PATH = f"{config['internal_output_path']}\\{self.model_args['model']}_model.tar"
+        LOCAL_MODEL_PATH = f"{config['internal_output_path']}\\{self.model_args['model']}_model.pt"
         blob_service_client = BlobServiceClient(account_url=STORAGE_ACCOUNT_URL, credential=os.environ["AZURE_STORAGE_CONNECTIONKEY"])
-        blob_client_model = blob_service_client.get_blob_client(MODEL_CONTAINER, f'{self.model_args["model"]}_model.tar', snapshot=None)
+        blob_client_model = blob_service_client.get_blob_client(MODEL_CONTAINER, f'{self.model_args["model"]}_model.pt', snapshot=None)
         blob_client_modeldet = blob_service_client.get_blob_client(MODEL_DETAILS_CONTAINER, 'model_details.json', snapshot=None)
         self.__download_blob(LOCAL_MODEL_PATH, blob_client_model)
         self.__download_blob(LOCAL_MODELDET_PATH, blob_client_modeldet)
@@ -204,7 +217,8 @@ class Index:
             'model_params': json.dumps(self.model_args),
             'preprocessing_params': json.dumps(self.preproc_args)
         }
-        log_output_path = f"{self.config['experimental_output_path']}\\{filename}.json"
+        exp_out_path = self.config['experimental_output_path']
+        log_output_path = f"{exp_out_path}\\{filename}.json"
         with open(log_output_path, 'w+') as f:
             json.dump(model_logs, f)
 
@@ -218,13 +232,19 @@ class Index:
             print('\nGetting test data predictions...')
         else:
             print('\nEvaluating model with validation set...')
-        model_state_path = f"{self.config['internal_output_path']}\\{self.model_args['model']}_model.tar"
+        internal_path = self.config['internal_output_path']
+        model_name = self.model_args['model']
+        log_path = self.config['experimental_output_path']
+        out_path = self.config['output_path']
+        current_epoch = self.model_details["current_epoch"]
+        model_state_path = f"{internal_path}\\{model_name}_model.pt"
         model_object = torch.load(model_state_path, map_location=torch.device("cpu"))
         self.model.load_state_dict(model_object['model_state'])
         self.model.eval()
         total_acc, total_count, accu_val = 0, 0, 0
+        target_cols = get_target_cols()
         if is_test_dataset:
-            results_df = pd.DataFrame([], columns=['id', 'target'])
+            results_df = pd.DataFrame([], columns=['id'] + target_cols)
         with torch.no_grad():
             for i, batch in enumerate(data_loader):
                 if self.model_args["model"] == Model.CNN:
@@ -233,27 +253,28 @@ class Index:
                     predicted_probs = self.model(batch[1], batch[3])
                 elif self.model_args["model"] == Model.RNN:
                     prev_state= (model_object["rnn_prev_state_h"], model_object["rnn_prev_state_c"])
-                    predicted_probs = self.model(batch[1], prev_state)
-                predicted_labels = (predicted_probs > 0.5).int()
-                actual_labels = batch[0]
+                    predicted_probs, _ = self.model(batch[1], prev_state)
+                predicted_labels = predicted_probs[-1].type(torch.float)
+                actual_labels = batch[0].type(torch.float)
                 if not(is_test_dataset):
                     total_acc += (predicted_labels == actual_labels).sum().item()
-                    total_count += batch[0].size(0)
+                    #print('batch size', batch[0].size(0))
+                    total_count += (batch[0].size(0) * 24)
                 else:
-                    predicted_df = pd.DataFrame(predicted_labels.numpy(), columns=['target'])
+                    predicted_df = pd.DataFrame(predicted_labels.numpy(), columns=target_cols)
                     predicted_ids = pd.DataFrame(batch[2].numpy(), columns=['id'])
                     predicted_df = pd.concat([predicted_ids, predicted_df], axis = 1)
                     results_df = results_df.append(predicted_df, ignore_index = True)
             if not(is_test_dataset):
                 accu_val = total_acc / total_count
-                with open(f"{self.config['experimental_output_path']}\\model_details.json") as f:
+                with open(f"{log_path}\\model_details.json") as f:
                     model_details = json.load(f)
-                    current_epoch_name = f"epoch_{self.model_details['current_epoch']}"
+                    current_epoch_name = f"epoch_{current_epoch}"
                     self.model_details[current_epoch_name]["loss"] = model_details["loss"] / self.no_of_batches
                     self.model_details[current_epoch_name]["accuracy"] = accu_val
             else:
                 filename = get_filename(self.model_args["model"])
-                csv_output_path = f"{self.config['output_path']}\\{filename}.csv"
+                csv_output_path = f"{out_path}\\{filename}.csv"
                 results_df.to_csv(csv_output_path, index = False)
                 self.__plot_loss_accuracy(filename)
         
@@ -266,18 +287,28 @@ class Index:
             print('\nRunning epoch', epoch)
             self.model_details["current_epoch"] = epoch
             self.model_details[f"epoch_{epoch}"] = dict()
-            for i, batch  in enumerate(self.train_loader):
-                print(f'\tSending batch {i} for training...')
-                print('\t\tMaking tensors of the inputs...')
-                save_tensor(batch[1], 'texts')
-                save_tensor(batch[0], 'labels')
-                save_tensor(batch[3], 'offsets')
-                is_last_batch = (i == (len(self.train_loader) - 1))
-                is_first_batch = i == 0
-                self.__train_model_in_azure(is_first_batch, is_last_batch)
+            if epoch == 1:
+                for i, batch  in enumerate(self.train_loader):
+                    print(f'\tBuilding batch {i} for training...')
+                    print('\t\tMaking tensors of the inputs...')
+                    #out, _ = self.model(batch[1], self.model_state)
+                    #print('predicted probs', out)
+                    #print('predicted probs size', out.size())
+                    #print('actual output', batch[0])
+                    #print('actual output size', batch[0].size())
+                    #exit()
+                    save_tensor(batch[1], f'batch_{i}_texts')
+                    save_tensor(batch[0], f'batch_{i}_labels')
+                    save_tensor(batch[3], f'batch_{i}_offsets')
+                print('\tUploading data for training')
+                self.__upload_batch_data()
+            print('\tTraining model...')
+            self.__train_model_in_azure()
+            print('\tDownloading output')
             self.__download_output()
             accu_val = self.__evaluate_model(self.valid_loader)
             print(f'Accuracy after epoch {epoch}:', accu_val)
+            print(f'Loss after epoch {epoch}:', self.model_details[f"epoch_{epoch}"]["loss"])
         self.__evaluate_model(test_loader, True)
 
 if __name__ == "__main__":

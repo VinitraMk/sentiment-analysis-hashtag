@@ -1,17 +1,18 @@
 config:
-    input_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\input"
-    processed_io_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\processed_io"
-    output_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\output"
-    internal_output_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\output\\internal_output"
-    visualizations_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\visualizations"
-    experimental_output_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\experimental_logs"
+    input_path: "C:\\Users\\vimurali\\ML\\sentiment-analysis-hashtag\\input"
+    processed_io_path: "C:\\Users\\vimurali\\ML\\sentiment-analysis-hashtag\\processed_io"
+    output_path: "C:\\Users\\vimurali\\ML\\sentiment-analysis-hashtag\\output"
+    internal_output_path: "C:\\Users\\vimurali\\ML\\sentiment-analysis-hashtag\\output\\internal_output"
+    visualizations_path: "C:\\Users\\vimurali\\ML\\sentiment-analysis-hashtag\\visualizations"
+    experimental_output_path: "C:\\Users\\vimurali\\ML\\sentiment-analysis-hashtag\\experimental_logs"
     azureblob_name: "azureml-blobstore-31aeaa24-564c-4aa8-bdf4-fc4b5707bd1b"
-    resource_config_path: "C:\\Users\\vimurali\\ML\\Sentiment-Analysis-Hashtag\\config.json"
+    resource_config_path: "C:\\Users\\vimurali\\ML\\sentiment-analysis-hashtag\\config.json"
 
 model_args:
     model: 'rnn'
-    batch_size: 1103
-    num_epochs: 5
+    batch_size: 5000
+    package_size: 1
+    num_epochs: 20
     word2vec_epochs: 1000
     embed_dim: 128
     window_size: 10
@@ -20,7 +21,7 @@ model_args:
     momentum: 0.8
     lstm_size: 3
     num_layers: 2
-    dropout: 0.25
+    dropout: 0.5
     num_classes: 24 
     target_cols: ['s1','s2','s3','s4','s5', 'w1', 'w2', 'w3', 'w4', 'k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7', 'k8', 'k9', 'k10', 'k11', 'k12', 'k13', 'k14', 'k15']
                 

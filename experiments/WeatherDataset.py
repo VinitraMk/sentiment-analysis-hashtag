@@ -17,6 +17,9 @@ class WeatherDataset(Dataset):
         if is_train:
             self.X = self.data.drop(columns=self.target_cols)
             self.y = self.data[self.target_cols]
+        else:
+            self.X = self.data
+            self.y = None
 
     def __prepare_hashtags(self, text):
         return re.findall(r"#(\w+)", text)
@@ -39,6 +42,7 @@ class WeatherDataset(Dataset):
             hashtags = self.__prepare_hashtags(self.X.iloc[idx]['tweet'])
         else:
             label = [0] * 24
+            hashtags = []
 
         #label = self.y.iloc[idx] if self.y is not None else -1
         text = self.X.iloc[idx]['tweet']
