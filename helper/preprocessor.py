@@ -8,9 +8,10 @@ import re
 from nltk import WordNetLemmatizer
 from gensim.models import Word2Vec
 import numpy as np
+import os
 
 #custom imports
-from helper.utils import get_config, get_model_params, get_preproc_params, get_target_cols
+from helper.utils import get_config, get_model_params, get_preproc_params, get_target_cols, save_tensor, save_model_supports
 
 class Preprocessor:
     preproc_args = None
@@ -21,8 +22,16 @@ class Preprocessor:
         self.tokenizer = get_tokenizer('basic_english')
 
     def start_preprocessing(self, data_iter):
+        self.config = get_config()
         print('\tBuilding vocabulary')
-        self.vocab = build_vocab_from_iterator(self.__yield_tokens(data_iter), specials=["<unk>"])
+        filename = f'{self.config["internal_output_path"]}\\vocab_obj.pth'
+        if (os.path.exists(filename)):
+            self.vocab = torch.load(filename)
+            print('\tVocab file loaded object', self.vocab)
+        else:
+            self.vocab = build_vocab_from_iterator(self.__yield_tokens(data_iter), specials=["<unk>"])
+            print('\tVocab object', self.vocab)
+            save_model_supports(self.vocab, self.config["internal_output_path"], 'vocab_obj.pth')
         print('\tSetting vocabulary index')
         self.vocab.set_default_index(1)
         print('\tBuilding text pipeline')

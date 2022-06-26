@@ -20,7 +20,7 @@ class RNN(nn.Module):
         dropout=dropout, batch_first = True)
         self.fc = nn.Linear(self.lstm_size, num_classes)
 
-    def forward(self, x, prev_state):
+    def forward(self, x):
         embedded = self.embedding(x)
         output, state = self.lstm(embedded)
         logits = self.fc(state[-1])

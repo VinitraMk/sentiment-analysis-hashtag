@@ -11,8 +11,7 @@ config:
 model_args:
     model: 'rnn'
     batch_size: 5000
-    package_size: 1
-    num_epochs: 20
+    num_epochs: 250
     word2vec_epochs: 1000
     embed_dim: 128
     window_size: 10
@@ -22,8 +21,9 @@ model_args:
     lstm_size: 3
     num_layers: 2
     dropout: 0.5
-    num_classes: 24 
+    num_classes: 24
     target_cols: ['s1','s2','s3','s4','s5', 'w1', 'w2', 'w3', 'w4', 'k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7', 'k8', 'k9', 'k10', 'k11', 'k12', 'k13', 'k14', 'k15']
+    refresh_data: False
                 
 preproc_args:
     encoding_type: 'LABEL_ENCODING'

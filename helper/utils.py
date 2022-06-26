@@ -14,6 +14,10 @@ def get_filename(filename):
 def get_config_path():
     return path.join(getenv('ROOT_DIR'),'args.yaml')
 
+def get_azure_config():
+    config = get_config()
+    return read_json(config["resource_config_path"])
+
 def get_all_args():
     config_path = get_config_path()
     all_args = {}
@@ -85,12 +89,12 @@ def save_model(model, model_path, model_name, is_nn = False):
             torch.save(model, f)
 
 def save_model_supports(model_obj, model_path, filename):
-    output_path = f'{model_path}/{filename}.pt'
+    output_path = f'{model_path}/{filename}'
     torch.save(model_obj, output_path)
 
-def save_tensor(tensor_obj, tensor_name):
+def save_tensor(tensor_obj, tensor_name, filepath = ''):
     config = get_all_args()["config"]
-    filename = f"{config['processed_io_path']}\\input\\tensor_{tensor_name}.pt"
+    filename = f"{config['processed_io_path']}\\input\\tensor_{tensor_name}.pt" if filepath == '' else f"{filepath}\\tensor_{tensor_name}.pt"
     torch.save(tensor_obj, filename)
 
 def download_model(model_path):
